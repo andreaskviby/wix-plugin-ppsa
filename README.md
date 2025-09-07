@@ -63,11 +63,12 @@ This plugin solves a critical problem for e-commerce store owners: **"How do I k
 
 ### Installation
 
-1. **Install from Wix App Market**
+1. **Install from Wix App Market** (When Available)
    ```
    Search for "Post-Purchase Survey & Attribution"
    Click "Add to Site" → Authorize permissions
    ```
+   *Note: This plugin is currently in development. For early access or custom installation, contact the developer.*
 
 2. **Automatic Setup**
    - Database collections are created automatically
@@ -86,7 +87,7 @@ The survey automatically appears on your Wix Stores thank-you pages after custom
 
 **For customers:**
 - See a quick survey: "How did you hear about us?"  
-- Choose from options like Instagram, Google, Friend/Family, etc.
+- Choose from default options: Instagram, Facebook, TikTok, YouTube, Google Search, Google Ads, Influencer, Friend/Family, Blog/PR, Podcast, Email/SMS, Other
 - Submit with one click
 
 **For you:**
@@ -146,26 +147,33 @@ npm run test:coverage
 npm run lint
 ```
 
+**Test Coverage**: The project includes comprehensive test suites:
+- **Widget Tests**: React component testing with user interactions
+- **Backend Tests**: API function testing with mocked Wix services
+- **Analytics Tests**: Verification of Google Analytics and Facebook Pixel integration
+- **Error Handling**: Testing network failures and validation errors
+
 ## 📊 Analytics Integration
 
 ### Google Analytics 4
 ```javascript
 // Automatic event firing after survey submission
-gtag('event', 'post_purchase_attribution', {
+gtag('event', 'HDYHAU', {
   channel: 'Instagram',
-  order_value: 79.99,
+  orderValue: 79.99,
   currency: 'USD',
-  order_id: 'WIX-12345'
+  orderId: 'WIX-12345'
 });
 ```
 
 ### Facebook Pixel
 ```javascript  
 // Custom conversion tracking
-fbq('trackCustom', 'AttributionSurvey', {
+fbq('trackCustom', 'HDYHAU', {
   channel: 'TikTok', 
-  value: 79.99,
-  currency: 'USD'
+  orderValue: 79.99,
+  currency: 'USD',
+  orderId: 'WIX-12345'
 });
 ```
 
