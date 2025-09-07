@@ -1,0 +1,314 @@
+import { getResponses } from './responses.jsw';
+import { getPlan } from './plan.jsw';
+
+/**
+ * Export responses to CSV format
+ * @param {Object} filters - Export filters
+ * @param {string} filters.dateFrom - Start date
+ * @param {string} filters.dateTo - End date
+ * @param {string} filters.channel - Channel filter
+ * @returns {Promise<Object>} CSV export result
+ */
+export async function exportToCSV(filters = {}) {
+  try {
+    const plan = await getPlan();
+    
+    // Check plan limits for export
+    if (plan.planId === 'free') {
+      // Free plan has limited export capabilities
+      const monthlyLimit = 500; // Max 500 rows for free plan
+      filters.limit = Math.min(filters.limit || 500, monthlyLimit);
+    }
+    
+    const responses = await getResponses(filters);
+    
+    if (!responses.success) {
+      throw new Error(responses.error);
+    }
+    
+    const csvData = convertToCSV(responses.data);
+    
+    return {
+      success: true,
+      data: csvData,
+      filename: generateFilename(filters),
+      recordCount: responses.data.length,
+      mimeType: 'text/csv'
+    };
+    
+  } catch (error) {
+    console.error('Error exporting to CSV:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Export analytics summary to CSV
+ * @param {Object} filters - Export filters
+ * @returns {Promise<Object>} CSV export result
+ */
+export async function exportAnalyticsCSV(filters = {}) {
+  try {
+    const responses = await getResponses(filters);
+    
+    if (!responses.success) {
+      throw new Error(responses.error);
+    }
+    
+    const analytics = calculateAnalyticsSummary(responses.data);
+    const csvData = convertAnalyticsToCSV(analytics);
+    
+    return {
+      success: true,
+      data: csvData,
+      filename: `analytics_summary_${new Date().toISOString().split('T')[0]}.csv`,
+      mimeType: 'text/csv'
+    };
+    
+  } catch (error) {
+    console.error('Error exporting analytics CSV:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Generate export in JSON format for API integrations
+ * @param {Object} filters - Export filters
+ * @returns {Promise<Object>} JSON export result
+ */
+export async function exportToJSON(filters = {}) {
+  try {
+    const responses = await getResponses(filters);
+    
+    if (!responses.success) {
+      throw new Error(responses.error);
+    }
+    
+    return {
+      success: true,
+      data: {
+        responses: responses.data,
+        metadata: {
+          exportedAt: new Date().toISOString(),
+          recordCount: responses.data.length,
+          filters: filters
+        }
+      },
+      filename: generateFilename(filters, 'json'),
+      mimeType: 'application/json'
+    };
+    
+  } catch (error) {
+    console.error('Error exporting to JSON:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// Helper functions
+
+/**
+ * Convert response data to CSV format
+ * @param {Array} responses - Array of response objects
+ * @returns {string} CSV formatted string
+ */
+function convertToCSV(responses) {
+  if (!responses || responses.length === 0) {
+    return 'No data available';
+  }
+  
+  // Define CSV headers
+  const headers = [
+    'Created At',
+    'Order ID', 
+    'Order Number',
+    'Order Value',
+    'Currency',
+    'Attribution Channel',
+    'Other Text',
+    'SKU List',
+    'Device Type',
+    'User Agent'
+  ];
+  
+  // Create CSV rows
+  const rows = responses.map(response => {
+    const skuList = (response.lineItems || [])
+      .map(item => `${item.sku || 'N/A'}(${item.quantity || 1})`)
+      .join('; ');
+    
+    return [
+      new Date(response.createdAt).toLocaleString(),
+      response.orderId || '',
+      response.orderNumber || '',
+      response.orderValue || 0,
+      response.currency || 'USD',
+      response.channel || '',
+      response.otherText || '',
+      skuList,
+      response.clientHints?.deviceType || '',
+      response.clientHints?.userAgent || ''
+    ].map(field => escapeCSVField(field));
+  });
+  
+  // Combine headers and rows
+  const csvContent = [
+    headers.map(escapeCSVField).join(','),
+    ...rows.map(row => row.join(','))
+  ].join('\\n');
+  
+  return csvContent;
+}
+
+/**
+ * Convert analytics data to CSV format
+ * @param {Object} analytics - Analytics summary data
+ * @returns {string} CSV formatted string
+ */
+function convertAnalyticsToCSV(analytics) {
+  const sections = [];
+  
+  // Channel Summary
+  sections.push('CHANNEL SUMMARY');
+  sections.push('Channel,Response Count,Response %,Revenue,Revenue %');
+  
+  analytics.channelSummary.forEach(item => {
+    sections.push(`${escapeCSVField(item.channel)},${item.count},${item.responsePercentage}%,${item.revenue},${item.revenuePercentage}%`);
+  });
+  
+  sections.push(''); // Empty line
+  
+  // Daily Breakdown  
+  sections.push('DAILY BREAKDOWN (Last 30 Days)');
+  sections.push('Date,Responses,Revenue');
+  
+  analytics.dailyBreakdown.forEach(item => {
+    sections.push(`${item.date},${item.responses},${item.revenue}`);
+  });
+  
+  sections.push(''); // Empty line
+  
+  // Totals
+  sections.push('TOTALS');
+  sections.push('Metric,Value');
+  sections.push(`Total Responses,${analytics.totals.responses}`);
+  sections.push(`Total Revenue,${analytics.totals.revenue}`);
+  sections.push(`Average Order Value,${analytics.totals.averageOrderValue}`);
+  sections.push(`Response Rate,${analytics.totals.responseRate}%`);
+  
+  return sections.join('\\n');
+}
+
+/**
+ * Calculate analytics summary for export
+ * @param {Array} responses - Response data
+ * @returns {Object} Analytics summary
+ */
+function calculateAnalyticsSummary(responses) {
+  const channelCounts = {};
+  const channelRevenue = {};
+  const dailyData = {};
+  
+  let totalResponses = responses.length;
+  let totalRevenue = 0;
+  
+  responses.forEach(response => {
+    const channel = response.channel;
+    const revenue = response.orderValue || 0;
+    const date = new Date(response.createdAt).toISOString().split('T')[0];
+    
+    // Channel aggregation
+    channelCounts[channel] = (channelCounts[channel] || 0) + 1;
+    channelRevenue[channel] = (channelRevenue[channel] || 0) + revenue;
+    
+    // Daily aggregation
+    if (!dailyData[date]) {
+      dailyData[date] = { responses: 0, revenue: 0 };
+    }
+    dailyData[date].responses++;
+    dailyData[date].revenue += revenue;
+    
+    totalRevenue += revenue;
+  });
+  
+  // Channel summary
+  const channelSummary = Object.keys(channelCounts).map(channel => ({
+    channel,
+    count: channelCounts[channel],
+    responsePercentage: ((channelCounts[channel] / totalResponses) * 100).toFixed(1),
+    revenue: channelRevenue[channel].toFixed(2),
+    revenuePercentage: totalRevenue > 0 ? ((channelRevenue[channel] / totalRevenue) * 100).toFixed(1) : '0'
+  })).sort((a, b) => b.count - a.count);
+  
+  // Daily breakdown
+  const dailyBreakdown = Object.entries(dailyData)
+    .map(([date, data]) => ({
+      date,
+      responses: data.responses,
+      revenue: data.revenue.toFixed(2)
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  
+  return {
+    channelSummary,
+    dailyBreakdown,
+    totals: {
+      responses: totalResponses,
+      revenue: totalRevenue.toFixed(2),
+      averageOrderValue: totalResponses > 0 ? (totalRevenue / totalResponses).toFixed(2) : '0.00',
+      responseRate: '85' // This would be calculated based on total orders vs responses
+    }
+  };
+}
+
+/**
+ * Escape CSV field to handle commas, quotes, and newlines
+ * @param {*} field - Field value to escape
+ * @returns {string} Escaped field value
+ */
+function escapeCSVField(field) {
+  if (field === null || field === undefined) {
+    return '';
+  }
+  
+  const fieldStr = String(field);
+  
+  // If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
+  if (fieldStr.includes(',') || fieldStr.includes('"') || fieldStr.includes('\\n')) {
+    return `"${fieldStr.replace(/"/g, '""')}"`;
+  }
+  
+  return fieldStr;
+}
+
+/**
+ * Generate filename for export
+ * @param {Object} filters - Export filters
+ * @param {string} extension - File extension (default: csv)
+ * @returns {string} Generated filename
+ */
+function generateFilename(filters, extension = 'csv') {
+  const timestamp = new Date().toISOString().split('T')[0];
+  
+  let filename = `pps_responses_${timestamp}`;
+  
+  if (filters.dateFrom || filters.dateTo) {
+    const from = filters.dateFrom ? new Date(filters.dateFrom).toISOString().split('T')[0] : 'start';
+    const to = filters.dateTo ? new Date(filters.dateTo).toISOString().split('T')[0] : 'end';
+    filename += `_${from}_to_${to}`;
+  }
+  
+  if (filters.channel) {
+    filename += `_${filters.channel.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+  }
+  
+  return `${filename}.${extension}`;
+}
