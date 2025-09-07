@@ -229,3 +229,16 @@ Week 4 — Ship
 TL;DR
 
 Launch a Thank-You page HDYHAU survey that writes clean order-tied data, triggers analytics uplift, and shows simple revenue-by-channel reporting. Ship with freemium and real value on day one; expand with targeting, multi-step flows, and integrations for Pro/Growth upsell.
+
+⸻
+
+## 📄 Marketing & Business Documents
+
+For business development, partnerships, and investor relations, see our comprehensive marketing materials:
+
+- **[🚀 UPSELLING_GUIDE.md](UPSELLING_GUIDE.md)** - Complete marketing pitch for clients and partners
+- **[📋 EXECUTIVE_SUMMARY.md](EXECUTIVE_SUMMARY.md)** - Quick overview for busy executives  
+- **[🎯 PRESENTATION_SLIDES.md](PRESENTATION_SLIDES.md)** - Slide deck for presentations and demos
+- **[📊 MARKET_RESEARCH.md](MARKET_RESEARCH.md)** - Detailed market analysis and validation
+
+These documents demonstrate why this plugin represents a **$100M+ market opportunity** with exceptional growth potential.
