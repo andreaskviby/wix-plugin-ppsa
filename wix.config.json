@@ -1,0 +1,53 @@
+{
+  "appId": "post-purchase-survey-attribution",
+  "appName": "Post-Purchase Survey & Attribution",
+  "version": "1.0.0",
+  "description": "Know what really drove the sale. A no-friction post-purchase survey shown on the Wix Stores Thank-You page.",
+  "category": "business",
+  "permissions": [
+    "MANAGE_STORES",
+    "ACCESS_ORDERS",
+    "MANAGE_CRM",
+    "ACCESS_ANALYTICS"
+  ],
+  "platform": {
+    "blocks": true,
+    "backend": true,
+    "pages": true
+  },
+  "billing": {
+    "free": {
+      "planId": "free",
+      "name": "Free",
+      "price": 0,
+      "features": [
+        "1 active survey",
+        "100 responses/month",
+        "Basic dashboard",
+        "CSV export (limited)"
+      ]
+    },
+    "pro": {
+      "planId": "pro",
+      "name": "Pro",
+      "price": 2900,
+      "features": [
+        "Unlimited responses",
+        "Advanced settings",
+        "Server events",
+        "Sampling rules"
+      ]
+    },
+    "growth": {
+      "planId": "growth",
+      "name": "Growth", 
+      "price": 7900,
+      "features": [
+        "SKU/amount segments",
+        "Multi-survey rotation",
+        "Sheets sync",
+        "Channel revenue reporting"
+      ]
+    }
+  }
+}

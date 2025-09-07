@@ -1,0 +1,343 @@
+import wixData from 'wix-data';
+import { getSecret } from 'wix-secrets';
+import { getPlan } from './plan.jsw';
+
+const COLLECTION_NAME = 'pps_responses';
+
+/**
+ * Save a survey response with idempotency protection and order reconciliation
+ * @param {Object} responseData - The survey response data
+ * @param {string} responseData.orderId - The order ID
+ * @param {string} responseData.channel - Selected attribution channel 
+ * @param {string} responseData.otherText - Optional text for "Other" channel
+ * @param {Object} responseData.clientHints - Client browser/device information
+ * @returns {Promise<Object>} The saved response or existing response if duplicate
+ */
+export async function saveResponse(responseData) {
+  try {
+    const { orderId, channel, otherText, clientHints } = responseData;
+    
+    // Validate required fields
+    if (!orderId || !channel) {
+      throw new Error('orderId and channel are required');
+    }
+    
+    // Check for existing response (idempotency)
+    const existingResponse = await wixData.query(COLLECTION_NAME)
+      .eq('orderId', orderId)
+      .find();
+    
+    if (existingResponse.items.length > 0) {
+      return {
+        success: true,
+        message: 'Response already exists for this order',
+        data: existingResponse.items[0],
+        duplicate: true
+      };
+    }
+    
+    // Check plan limits
+    const currentPlan = await getPlan();
+    const responseCount = await getMonthlyResponseCount();
+    
+    if (currentPlan.planId === 'free' && responseCount >= 100) {
+      throw new Error('Monthly response limit exceeded for free plan');
+    }
+    
+    // Reconcile order data from Wix eCommerce APIs
+    const orderData = await reconcileOrderData(orderId);
+    
+    // Prepare response object
+    const response = {
+      id: generateId(),
+      orderId: orderId,
+      orderNumber: orderData.orderNumber || null,
+      orderValue: orderData.orderValue || 0,
+      currency: orderData.currency || 'USD',
+      channel: channel,
+      otherText: channel === 'Other' ? otherText : null,
+      lineItems: orderData.lineItems || [],
+      createdAt: new Date(),
+      clientHints: clientHints || {},
+      consentFlags: {
+        dataCollection: true,
+        analytics: true
+      }
+    };
+    
+    // Save to database
+    const savedResponse = await wixData.insert(COLLECTION_NAME, response);
+    
+    // Fire analytics event
+    await fireAnalyticsEvent(savedResponse);
+    
+    return {
+      success: true,
+      message: 'Response saved successfully',
+      data: savedResponse,
+      duplicate: false
+    };
+    
+  } catch (error) {
+    console.error('Error saving response:', error);
+    return {
+      success: false,
+      error: error.message,
+      data: null
+    };
+  }
+}
+
+/**
+ * Get responses with filtering and pagination
+ * @param {Object} filters - Filter parameters
+ * @param {string} filters.dateFrom - Start date filter
+ * @param {string} filters.dateTo - End date filter
+ * @param {string} filters.channel - Channel filter
+ * @param {number} filters.skip - Number of records to skip
+ * @param {number} filters.limit - Number of records to return
+ * @returns {Promise<Object>} Filtered responses
+ */
+export async function getResponses(filters = {}) {
+  try {
+    let query = wixData.query(COLLECTION_NAME);
+    
+    // Apply date filters
+    if (filters.dateFrom) {
+      query = query.ge('createdAt', new Date(filters.dateFrom));
+    }
+    if (filters.dateTo) {
+      query = query.le('createdAt', new Date(filters.dateTo));
+    }
+    
+    // Apply channel filter
+    if (filters.channel) {
+      query = query.eq('channel', filters.channel);
+    }
+    
+    // Apply pagination
+    if (filters.skip) {
+      query = query.skip(filters.skip);
+    }
+    
+    const limit = Math.min(filters.limit || 50, 100);
+    query = query.limit(limit);
+    
+    // Order by creation date (newest first)
+    query = query.descending('createdAt');
+    
+    const results = await query.find();
+    
+    return {
+      success: true,
+      data: results.items,
+      totalCount: results.totalCount,
+      hasNext: results.hasNext()
+    };
+    
+  } catch (error) {
+    console.error('Error getting responses:', error);
+    return {
+      success: false,
+      error: error.message,
+      data: []
+    };
+  }
+}
+
+/**
+ * Get analytics aggregations for dashboard
+ * @param {Object} filters - Date and other filters
+ * @returns {Promise<Object>} Aggregated analytics data
+ */
+export async function getAnalytics(filters = {}) {
+  try {
+    const responses = await getResponses(filters);
+    
+    if (!responses.success) {
+      throw new Error(responses.error);
+    }
+    
+    const data = responses.data;
+    
+    // Calculate channel distribution
+    const channelCounts = {};
+    const channelRevenue = {};
+    let totalResponses = 0;
+    let totalRevenue = 0;
+    
+    data.forEach(response => {
+      const channel = response.channel;
+      const revenue = response.orderValue || 0;
+      
+      channelCounts[channel] = (channelCounts[channel] || 0) + 1;
+      channelRevenue[channel] = (channelRevenue[channel] || 0) + revenue;
+      
+      totalResponses++;
+      totalRevenue += revenue;
+    });
+    
+    // Convert to arrays for charts
+    const topChannels = Object.entries(channelCounts)
+      .map(([channel, count]) => ({
+        channel,
+        count,
+        percentage: ((count / totalResponses) * 100).toFixed(1)
+      }))
+      .sort((a, b) => b.count - a.count);
+    
+    const revenueShare = Object.entries(channelRevenue)
+      .map(([channel, revenue]) => ({
+        channel,
+        revenue,
+        percentage: ((revenue / totalRevenue) * 100).toFixed(1)
+      }))
+      .sort((a, b) => b.revenue - a.revenue);
+    
+    // Calculate 30-day trend
+    const trend = calculateTrend(data);
+    
+    return {
+      success: true,
+      data: {
+        topChannels,
+        revenueShare,
+        trend,
+        totals: {
+          responses: totalResponses,
+          revenue: totalRevenue,
+          averageOrderValue: totalResponses > 0 ? (totalRevenue / totalResponses).toFixed(2) : 0
+        }
+      }
+    };
+    
+  } catch (error) {
+    console.error('Error getting analytics:', error);
+    return {
+      success: false,
+      error: error.message,
+      data: null
+    };
+  }
+}
+
+/**
+ * Check if response already exists for an order ID
+ * @param {string} orderId - The order ID to check
+ * @returns {Promise<boolean>} True if response exists
+ */
+export async function responseExists(orderId) {
+  try {
+    const result = await wixData.query(COLLECTION_NAME)
+      .eq('orderId', orderId)
+      .find();
+    
+    return result.items.length > 0;
+  } catch (error) {
+    console.error('Error checking response existence:', error);
+    return false;
+  }
+}
+
+// Helper functions
+
+/**
+ * Reconcile order data from Wix eCommerce APIs
+ */
+async function reconcileOrderData(orderId) {
+  try {
+    // This would integrate with Wix eCommerce APIs
+    // For now, return placeholder data
+    return {
+      orderNumber: `ORD-${orderId.slice(-6)}`,
+      orderValue: 0,
+      currency: 'USD',
+      lineItems: []
+    };
+  } catch (error) {
+    console.error('Error reconciling order data:', error);
+    return {
+      orderNumber: null,
+      orderValue: 0,
+      currency: 'USD',
+      lineItems: []
+    };
+  }
+}
+
+/**
+ * Fire analytics event for tracking
+ */
+async function fireAnalyticsEvent(response) {
+  try {
+    // This would integrate with analytics platforms
+    const eventData = {
+      event: 'HDYHAU',
+      channel: response.channel,
+      orderId: response.orderId,
+      orderValue: response.orderValue,
+      currency: response.currency
+    };
+    
+    console.log('Analytics event fired:', eventData);
+    // Actual implementation would call analytics APIs
+  } catch (error) {
+    console.error('Error firing analytics event:', error);
+  }
+}
+
+/**
+ * Get monthly response count for plan limits
+ */
+async function getMonthlyResponseCount() {
+  try {
+    const startOfMonth = new Date();
+    startOfMonth.setDate(1);
+    startOfMonth.setHours(0, 0, 0, 0);
+    
+    const result = await wixData.query(COLLECTION_NAME)
+      .ge('createdAt', startOfMonth)
+      .count();
+    
+    return result;
+  } catch (error) {
+    console.error('Error getting monthly response count:', error);
+    return 0;
+  }
+}
+
+/**
+ * Calculate 30-day trend data
+ */
+function calculateTrend(data) {
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  
+  const dailyCounts = {};
+  
+  // Initialize all days with 0
+  for (let d = new Date(thirtyDaysAgo); d <= now; d.setDate(d.getDate() + 1)) {
+    const dateStr = d.toISOString().split('T')[0];
+    dailyCounts[dateStr] = 0;
+  }
+  
+  // Count responses per day
+  data.forEach(response => {
+    const responseDate = new Date(response.createdAt);
+    if (responseDate >= thirtyDaysAgo) {
+      const dateStr = responseDate.toISOString().split('T')[0];
+      dailyCounts[dateStr] = (dailyCounts[dateStr] || 0) + 1;
+    }
+  });
+  
+  return Object.entries(dailyCounts)
+    .map(([date, count]) => ({ date, count }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * Generate unique ID
+ */
+function generateId() {
+  return 'pps_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+}

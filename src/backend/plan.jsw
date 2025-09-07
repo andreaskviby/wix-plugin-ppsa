@@ -1,0 +1,278 @@
+import wixData from 'wix-data';
+
+const SETTINGS_COLLECTION = 'pps_settings';
+
+/**
+ * Get current billing plan information
+ * @returns {Promise<Object>} Plan information
+ */
+export async function getPlan() {
+  try {
+    // In a real Wix app, this would use the Billing APIs
+    // For now, return default free plan
+    return {
+      planId: 'free',
+      name: 'Free',
+      limits: {
+        responses: 100,
+        surveys: 1,
+        serverEvents: false,
+        advancedSettings: false
+      },
+      features: [
+        '1 active survey',
+        '100 responses/month',
+        'Basic dashboard',
+        'CSV export (limited)'
+      ]
+    };
+  } catch (error) {
+    console.error('Error getting plan:', error);
+    return {
+      planId: 'free',
+      name: 'Free',
+      limits: {
+        responses: 100,
+        surveys: 1,
+        serverEvents: false,
+        advancedSettings: false
+      }
+    };
+  }
+}
+
+/**
+ * Check if a feature is available in the current plan
+ * @param {string} feature - Feature to check
+ * @returns {Promise<boolean>} True if feature is available
+ */
+export async function hasFeature(feature) {
+  try {
+    const plan = await getPlan();
+    
+    switch (feature) {
+      case 'unlimited_responses':
+        return plan.planId !== 'free';
+      case 'server_events':
+        return plan.planId === 'pro' || plan.planId === 'growth';
+      case 'advanced_settings':
+        return plan.planId !== 'free';
+      case 'multi_survey':
+        return plan.planId === 'growth';
+      case 'segments':
+        return plan.planId === 'growth';
+      case 'sheets_sync':
+        return plan.planId === 'growth';
+      default:
+        return false;
+    }
+  } catch (error) {
+    console.error('Error checking feature:', error);
+    return false;
+  }
+}
+
+/**
+ * Get plan limits for the current subscription
+ * @returns {Promise<Object>} Plan limits
+ */
+export async function getPlanLimits() {
+  try {
+    const plan = await getPlan();
+    return plan.limits;
+  } catch (error) {
+    console.error('Error getting plan limits:', error);
+    return {
+      responses: 100,
+      surveys: 1,
+      serverEvents: false,
+      advancedSettings: false
+    };
+  }
+}
+
+/**
+ * Check if action is allowed under current plan
+ * @param {string} action - Action to check (e.g., 'create_response', 'export_csv')
+ * @param {Object} context - Additional context for the check
+ * @returns {Promise<Object>} Result with allowed flag and reason
+ */
+export async function isActionAllowed(action, context = {}) {
+  try {
+    const plan = await getPlan();
+    const limits = plan.limits;
+    
+    switch (action) {
+      case 'create_response':
+        if (plan.planId === 'free') {
+          // Check monthly limit for free plan
+          const monthlyCount = context.monthlyResponseCount || 0;
+          if (monthlyCount >= limits.responses) {
+            return {
+              allowed: false,
+              reason: 'Monthly response limit exceeded. Upgrade to Pro for unlimited responses.',
+              upgradeRequired: true
+            };
+          }
+        }
+        return { allowed: true };
+        
+      case 'export_csv':
+        return { allowed: true }; // Available in all plans
+        
+      case 'server_events':
+        if (!limits.serverEvents) {
+          return {
+            allowed: false,
+            reason: 'Server events are only available in Pro and Growth plans.',
+            upgradeRequired: true
+          };
+        }
+        return { allowed: true };
+        
+      case 'advanced_settings':
+        if (!limits.advancedSettings) {
+          return {
+            allowed: false,
+            reason: 'Advanced settings are only available in Pro and Growth plans.',
+            upgradeRequired: true
+          };
+        }
+        return { allowed: true };
+        
+      case 'create_survey':
+        const currentSurveys = context.surveyCount || 0;
+        if (currentSurveys >= limits.surveys) {
+          return {
+            allowed: false,
+            reason: 'Survey limit reached. Upgrade for more surveys.',
+            upgradeRequired: true
+          };
+        }
+        return { allowed: true };
+        
+      default:
+        return { allowed: false, reason: 'Unknown action' };
+    }
+  } catch (error) {
+    console.error('Error checking action permission:', error);
+    return { allowed: false, reason: 'Permission check failed' };
+  }
+}
+
+/**
+ * Get upgrade recommendations based on usage
+ * @param {Object} usage - Current usage statistics
+ * @returns {Promise<Object>} Upgrade recommendations
+ */
+export async function getUpgradeRecommendations(usage) {
+  try {
+    const plan = await getPlan();
+    
+    if (plan.planId === 'growth') {
+      return { recommendations: [] }; // Already on highest plan
+    }
+    
+    const recommendations = [];
+    
+    if (plan.planId === 'free') {
+      // Check if approaching limits
+      const monthlyResponses = usage.monthlyResponses || 0;
+      if (monthlyResponses > 80) { // 80% of free limit
+        recommendations.push({
+          type: 'plan_upgrade',
+          target: 'pro',
+          reason: 'Approaching monthly response limit',
+          benefit: 'Get unlimited responses with Pro plan'
+        });
+      }
+      
+      if (usage.needsServerEvents) {
+        recommendations.push({
+          type: 'plan_upgrade',
+          target: 'pro',
+          reason: 'Server-side events needed for better tracking',
+          benefit: 'Enable Meta CAPI and other server events'
+        });
+      }
+    }
+    
+    if (plan.planId === 'pro') {
+      if (usage.needsSegments || usage.multipleProducts) {
+        recommendations.push({
+          type: 'plan_upgrade',
+          target: 'growth',
+          reason: 'Multiple products or segments needed',
+          benefit: 'Advanced segmentation and multi-survey rotation'
+        });
+      }
+    }
+    
+    return { recommendations };
+  } catch (error) {
+    console.error('Error getting upgrade recommendations:', error);
+    return { recommendations: [] };
+  }
+}
+
+/**
+ * Simulate plan upgrade (in real app, this would call Wix Billing APIs)
+ * @param {string} targetPlan - Plan to upgrade to
+ * @returns {Promise<Object>} Upgrade result
+ */
+export async function upgradePlan(targetPlan) {
+  try {
+    // In real implementation, this would:
+    // 1. Call Wix Billing APIs to process payment
+    // 2. Update plan in app instance
+    // 3. Enable new features immediately
+    
+    console.log(`Plan upgrade requested to: ${targetPlan}`);
+    
+    return {
+      success: true,
+      message: `Successfully upgraded to ${targetPlan} plan`,
+      newPlan: {
+        planId: targetPlan,
+        activatedAt: new Date(),
+        features: getPlanFeatures(targetPlan)
+      }
+    };
+  } catch (error) {
+    console.error('Error upgrading plan:', error);
+    return {
+      success: false,
+      error: 'Failed to upgrade plan'
+    };
+  }
+}
+
+/**
+ * Get features for a specific plan
+ * @param {string} planId - Plan identifier
+ * @returns {Array} List of plan features
+ */
+function getPlanFeatures(planId) {
+  const planFeatures = {
+    free: [
+      '1 active survey',
+      '100 responses/month',
+      'Basic dashboard',
+      'CSV export (limited)'
+    ],
+    pro: [
+      'Unlimited responses',
+      'Advanced settings',
+      'Server events',
+      'Sampling rules'
+    ],
+    growth: [
+      'SKU/amount segments',
+      'Multi-survey rotation', 
+      'Sheets sync',
+      'Channel revenue reporting'
+    ]
+  };
+  
+  return planFeatures[planId] || planFeatures.free;
+}
