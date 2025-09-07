@@ -3,14 +3,13 @@ module.exports = {
     browser: true,
     es2021: true,
     node: true,
+    jest: true,
   },
   extends: [
     'eslint:recommended',
-    '@typescript-eslint/recommended',
     'plugin:react/recommended',
     'plugin:react-hooks/recommended',
   ],
-  parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaFeatures: {
       jsx: true,
@@ -20,14 +19,12 @@ module.exports = {
   },
   plugins: [
     'react',
-    '@typescript-eslint',
   ],
   rules: {
     'react/react-in-jsx-scope': 'off',
     'react/prop-types': 'off',
-    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-    '@typescript-eslint/no-explicit-any': 'warn',
-    'no-console': ['warn', { allow: ['warn', 'error'] }],
+    'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+    'no-console': 'off', // Allow console in Wix backend functions
     'prefer-const': 'error',
     'no-var': 'error',
   },
@@ -36,4 +33,15 @@ module.exports = {
       version: 'detect',
     },
   },
+  overrides: [
+    {
+      files: ['**/*.test.js', '**/*.spec.js'],
+      env: {
+        jest: true,
+      },
+      rules: {
+        'no-unused-vars': 'off',
+      },
+    },
+  ],
 };
