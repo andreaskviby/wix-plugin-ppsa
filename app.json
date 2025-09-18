@@ -5,16 +5,12 @@
   "description": "Know what really drove the sale. A no-friction post-purchase survey shown on the Wix Stores Thank-You page that ties responses to order value and pushes data to analytics platforms.",
   "category": "ecommerce",
   "type": "blocks",
-  "icon": "assets/app-icon.png",
   "permissions": [
     "MANAGE_STORES",
     "ACCESS_ORDERS",
     "MANAGE_CRM",
     "ACCESS_ANALYTICS",
     "MANAGE_SITE_CONTENT"
-  ],
-  "requiredFeatures": [
-    "wix-stores"
   ],
   "webhooks": [
     {
@@ -32,11 +28,8 @@
         "id": "thankyou-survey",
         "name": "Post-Purchase Survey",
         "description": "Survey widget for collecting attribution data on thank-you pages",
-        "path": "src/widgets/thankyou-survey",
         "component": "ThankYouSurvey",
-        "tags": ["survey", "attribution", "analytics", "ecommerce"],
-        "placement": ["thank-you-page"],
-        "autoInstall": true
+        "tags": ["survey", "attribution", "analytics", "ecommerce"]
       }
     ],
     "pages": [
@@ -44,53 +37,10 @@
         "id": "dashboard",
         "name": "Survey Analytics Dashboard",
         "description": "Analytics dashboard for viewing survey responses and channel attribution",
-        "path": "src/pages/dashboard",
-        "component": "Dashboard",
-        "route": "/dashboard"
+        "component": "Dashboard"
       }
     ]
   },
-  "backend": {
-    "functions": [
-      {
-        "name": "responses",
-        "path": "src/backend/responses.jsw"
-      },
-      {
-        "name": "plan",
-        "path": "src/backend/plan.jsw"
-      },
-      {
-        "name": "export",
-        "path": "src/backend/export.jsw"
-      }
-    ],
-    "events": [
-      {
-        "name": "events",
-        "path": "src/backend/events.js"
-      }
-    ]
-  },
-  "collections": [
-    {
-      "name": "pps_responses",
-      "schema": "src/collections/ppsResponses.js",
-      "permissions": "admin"
-    },
-    {
-      "name": "pps_settings",
-      "schema": "src/collections/ppsSettings.js",
-      "permissions": "admin"
-    }
-  ],
-  "secrets": [
-    "GOOGLE_ANALYTICS_ID",
-    "FACEBOOK_PIXEL_ID",
-    "TIKTOK_PIXEL_ID",
-    "META_CAPI_ACCESS_TOKEN",
-    "META_CAPI_DATASET_ID"
-  ],
   "billing": {
     "plans": [
       {
@@ -99,10 +49,6 @@
         "price": 0,
         "currency": "USD",
         "billingCycle": "monthly",
-        "limits": {
-          "monthlyResponses": 100,
-          "activeSurveys": 1
-        },
         "features": [
           "1 active survey",
           "100 responses/month",
@@ -117,10 +63,6 @@
         "price": 2900,
         "currency": "USD",
         "billingCycle": "monthly",
-        "limits": {
-          "monthlyResponses": -1,
-          "activeSurveys": -1
-        },
         "features": [
           "Unlimited surveys",
           "Unlimited responses",
@@ -137,10 +79,6 @@
         "price": 7900,
         "currency": "USD",
         "billingCycle": "monthly",
-        "limits": {
-          "monthlyResponses": -1,
-          "activeSurveys": -1
-        },
         "features": [
           "Everything in Pro",
           "SKU/product-level segmentation",
@@ -154,9 +92,23 @@
       }
     ]
   },
-  "buildSettings": {
-    "entry": "src/index.js",
-    "outputDir": "dist",
-    "publicPath": "/static/"
-  }
+  "collections": [
+    {
+      "name": "pps_responses",
+      "description": "Survey responses with order data",
+      "permissions": "admin"
+    },
+    {
+      "name": "pps_settings",
+      "description": "App configuration and settings",
+      "permissions": "admin"
+    }
+  ],
+  "secrets": [
+    "GOOGLE_ANALYTICS_ID",
+    "FACEBOOK_PIXEL_ID",
+    "TIKTOK_PIXEL_ID",
+    "META_CAPI_ACCESS_TOKEN",
+    "META_CAPI_DATASET_ID"
+  ]
 }

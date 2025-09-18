@@ -1,5 +1,3 @@
-import wixData from 'wix-data';
-
 /**
  * Collection schema for storing app settings and configuration
  */

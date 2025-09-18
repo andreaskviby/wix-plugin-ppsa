@@ -1,0 +1,101 @@
+{
+  "siteStructure": {
+    "pages": [
+      {
+        "id": "dashboard",
+        "name": "Survey Analytics",
+        "path": "/survey-analytics",
+        "description": "View survey responses and channel attribution analytics",
+        "component": "Dashboard",
+        "layout": "app",
+        "permissions": ["admin"]
+      }
+    ],
+    "widgets": [
+      {
+        "id": "thankyou-survey",
+        "name": "Post-Purchase Survey",
+        "description": "Survey widget for thank-you pages",
+        "component": "ThankYouSurvey",
+        "placement": ["thank-you-page"],
+        "autoInstall": true,
+        "requiredProps": ["orderId"]
+      }
+    ],
+    "dataCollections": [
+      {
+        "name": "pps_responses",
+        "displayName": "Survey Responses",
+        "description": "Stores post-purchase survey responses with order data",
+        "schema": "src/collections/ppsResponses.js",
+        "permissions": "admin"
+      },
+      {
+        "name": "pps_settings",
+        "displayName": "App Settings",
+        "description": "Stores app configuration and survey settings",
+        "schema": "src/collections/ppsSettings.js",
+        "permissions": "admin"
+      }
+    ],
+    "backendModules": [
+      {
+        "name": "responses",
+        "path": "src/backend/responses.jsw",
+        "description": "Main response handling and analytics"
+      },
+      {
+        "name": "plan",
+        "path": "src/backend/plan.jsw",
+        "description": "Billing and plan management"
+      },
+      {
+        "name": "export",
+        "path": "src/backend/export.jsw",
+        "description": "Data export functionality"
+      },
+      {
+        "name": "events",
+        "path": "src/backend/events.js",
+        "description": "eCommerce event handlers"
+      }
+    ],
+    "requiredFeatures": [
+      "wix-stores"
+    ],
+    "supportedLanguages": [
+      "en",
+      "es",
+      "fr",
+      "de",
+      "pt",
+      "it"
+    ]
+  },
+  "installation": {
+    "autoSetup": true,
+    "collectionsAutoCreate": true,
+    "defaultSettings": {
+      "surveyTitle": "How did you hear about us?",
+      "choices": [
+        "Instagram",
+        "Facebook",
+        "TikTok",
+        "YouTube",
+        "Google Search",
+        "Google Ads",
+        "Influencer",
+        "Friend/Family",
+        "Blog/PR",
+        "Podcast",
+        "Email/SMS",
+        "Other"
+      ],
+      "displayRules": {
+        "showToAll": true,
+        "firstTimeOnly": false,
+        "samplingRate": 100
+      }
+    }
+  }
+}

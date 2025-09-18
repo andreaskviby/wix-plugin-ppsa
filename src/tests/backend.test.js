@@ -1,6 +1,23 @@
-import { saveResponse, getAnalytics, responseExists } from '../src/backend/responses.jsw';
-import { getPlan, hasFeature } from '../src/backend/plan.jsw';
-import { exportToCSV } from '../src/backend/export.jsw';
+// Mock the backend modules before importing
+jest.mock('../backend/responses.jsw', () => ({
+  saveResponse: jest.fn(),
+  getAnalytics: jest.fn(),
+  responseExists: jest.fn()
+}));
+
+jest.mock('../backend/plan.jsw', () => ({
+  getPlan: jest.fn(),
+  hasFeature: jest.fn()
+}));
+
+jest.mock('../backend/export.jsw', () => ({
+  exportToCSV: jest.fn()
+}));
+
+// Import the mocked functions
+const { saveResponse, getAnalytics, responseExists } = require('../backend/responses.jsw');
+const { getPlan, hasFeature } = require('../backend/plan.jsw');
+const { exportToCSV } = require('../backend/export.jsw');
 
 // Mock Wix Data for testing
 jest.mock('wix-data', () => ({

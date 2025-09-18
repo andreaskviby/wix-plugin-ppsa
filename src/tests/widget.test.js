@@ -1,16 +1,16 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import ThankYouSurvey from '../src/widgets/thankyou-survey/ThankYouSurvey.jsx';
+import ThankYouSurvey from '../widgets/thankyou-survey/ThankYouSurvey.jsx';
 
 // Mock backend functions
-jest.mock('../src/backend/responses.jsw', () => ({
+jest.mock('../backend/responses.jsw', () => ({
   saveResponse: jest.fn(),
   responseExists: jest.fn()
 }));
 
-const mockSaveResponse = require('../src/backend/responses.jsw').saveResponse;
-const mockResponseExists = require('../src/backend/responses.jsw').responseExists;
+const mockSaveResponse = require('../backend/responses.jsw').saveResponse;
+const mockResponseExists = require('../backend/responses.jsw').responseExists;
 
 // Mock analytics functions
 window.gtag = jest.fn();

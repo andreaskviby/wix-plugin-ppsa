@@ -1,0 +1,122 @@
+{
+  "widgetId": "thankyou-survey",
+  "name": "Post-Purchase Survey",
+  "description": "Collect \"How did you hear about us?\" responses immediately after checkout",
+  "tags": ["survey", "attribution", "analytics", "ecommerce", "thank-you"],
+  "category": "ecommerce",
+  "component": "ThankYouSurvey",
+  "supportedPlatforms": ["desktop", "mobile"],
+  "displaySettings": {
+    "placement": ["thank-you-page"],
+    "defaultWidth": "100%",
+    "defaultHeight": "auto",
+    "responsive": true
+  },
+  "properties": {
+    "orderId": {
+      "type": "string",
+      "description": "Order ID from eCommerce platform",
+      "required": true
+    },
+    "orderValue": {
+      "type": "number",
+      "description": "Total order value",
+      "default": 0
+    },
+    "currency": {
+      "type": "string",
+      "description": "Order currency",
+      "default": "USD"
+    },
+    "settings": {
+      "type": "object",
+      "description": "Survey configuration settings",
+      "properties": {
+        "surveyTitle": {
+          "type": "string",
+          "description": "Survey question text",
+          "default": "How did you hear about us?"
+        },
+        "choices": {
+          "type": "array",
+          "description": "Survey answer choices",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "Instagram",
+            "Facebook",
+            "TikTok",
+            "YouTube",
+            "Google Search",
+            "Google Ads",
+            "Influencer",
+            "Friend/Family",
+            "Blog/PR",
+            "Podcast",
+            "Email/SMS",
+            "Other"
+          ]
+        },
+        "displayRules": {
+          "type": "object",
+          "properties": {
+            "showToAll": {
+              "type": "boolean",
+              "default": true
+            },
+            "firstTimeOnly": {
+              "type": "boolean",
+              "default": false
+            },
+            "samplingRate": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 100
+            }
+          }
+        },
+        "consentSettings": {
+          "type": "object",
+          "properties": {
+            "showConsent": {
+              "type": "boolean",
+              "default": false
+            },
+            "consentText": {
+              "type": "string",
+              "default": "I consent to data collection for analytics purposes"
+            }
+          }
+        }
+      }
+    }
+  },
+  "styling": {
+    "customizable": true,
+    "themes": ["light", "dark"],
+    "cssVariables": [
+      "--survey-background-color",
+      "--survey-border-color",
+      "--survey-text-color",
+      "--survey-button-color",
+      "--survey-button-hover-color"
+    ]
+  },
+  "events": [
+    {
+      "name": "onSurveySubmit",
+      "description": "Fired when survey is successfully submitted"
+    },
+    {
+      "name": "onSurveyError",
+      "description": "Fired when survey submission fails"
+    }
+  ],
+  "dependencies": [
+    "wix-data",
+    "wix-secrets",
+    "wix-ecommerce"
+  ]
+}

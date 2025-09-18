@@ -1,5 +1,19 @@
 import wixEcommerce from 'wix-ecommerce';
-import { saveResponse } from './responses.jsw';
+// Note: saveResponse is available for future auto-response features
+
+/**
+ * Initialize the Wix app
+ */
+export function initializeApp() {
+  console.log('Post-Purchase Survey & Attribution app initialized');
+  
+  // Register event handlers
+  wixEcommerce.onOrderCreated(wixEcommerce_onOrderCreated);
+  wixEcommerce.onOrderUpdated(wixEcommerce_onOrderUpdated);
+  
+  // Setup periodic cleanup
+  setInterval(cleanupOrderCache, 24 * 60 * 60 * 1000); // Daily cleanup
+}
 
 /**
  * Event handler for when an order is created in Wix Stores

@@ -1,0 +1,224 @@
+{
+  "$schema": "https://dev.wix.com/api/v2/schemas/app-manifest/v2.0.0.json",
+  "appDefinitionId": "post-purchase-survey-attribution",
+  "platformVersion": "2024.01.01",
+  "appName": "Post-Purchase Survey & Attribution",
+  "appVersion": "1.0.0",
+  "description": "Know what really drove the sale. A no-friction post-purchase survey shown on the Wix Stores Thank-You page that ties responses to order value and pushes data to analytics platforms.",
+  "iconUrl": "https://static.wixstatic.com/media/app-icon.png",
+  "smallIconUrl": "https://static.wixstatic.com/media/app-icon-small.png",
+  "category": "ecommerce",
+  "supportUrl": "https://github.com/andreaskviby/wix-plugin-ppsa/issues",
+  "privacyPolicyUrl": "https://your-domain.com/privacy",
+  "termsOfUseUrl": "https://your-domain.com/terms",
+  
+  "permissions": [
+    {
+      "name": "MANAGE_STORES",
+      "reason": "Required to access order data and integrate with checkout process"
+    },
+    {
+      "name": "ACCESS_ORDERS",
+      "reason": "Needed to tie survey responses to specific order values"
+    },
+    {
+      "name": "MANAGE_CRM",
+      "reason": "Optional integration with customer data for enhanced attribution"
+    },
+    {
+      "name": "ACCESS_ANALYTICS",
+      "reason": "Required to push attribution data to analytics platforms"
+    },
+    {
+      "name": "MANAGE_SITE_CONTENT",
+      "reason": "Needed to display survey widget on thank-you pages"
+    }
+  ],
+
+  "webhooks": [
+    {
+      "event": "stores/orders/v2/order_approved",
+      "url": "/webhooks/order-created",
+      "filters": {
+        "paymentStatus": "PAID"
+      }
+    },
+    {
+      "event": "stores/orders/v2/order_updated", 
+      "url": "/webhooks/order-updated",
+      "filters": {
+        "fieldsUpdated": ["fulfillmentStatus", "paymentStatus"]
+      }
+    }
+  ],
+
+  "components": {
+    "widgets": [
+      {
+        "componentType": "WIDGET",
+        "widgetId": "thankyou-survey",
+        "name": "Post-Purchase Survey",
+        "componentUrl": "/widgets/thankyou-survey",
+        "placement": {
+          "allowedOn": ["CHECKOUT_THANK_YOU_PAGE"],
+          "defaultPlacement": "CHECKOUT_THANK_YOU_PAGE"
+        },
+        "dimensions": {
+          "width": "100%",
+          "height": "auto",
+          "minHeight": "200px"
+        },
+        "settings": {
+          "configurableInEditor": true,
+          "defaultSettings": {
+            "surveyTitle": "How did you hear about us?",
+            "choices": [
+              "Instagram", "Facebook", "TikTok", "YouTube",
+              "Google Search", "Google Ads", "Influencer",
+              "Friend/Family", "Blog/PR", "Podcast", "Email/SMS", "Other"
+            ]
+          }
+        }
+      }
+    ],
+    
+    "pages": [
+      {
+        "componentType": "DASHBOARD_PAGE",
+        "pageId": "analytics-dashboard",
+        "name": "Survey Analytics",
+        "componentUrl": "/pages/dashboard",
+        "menuDisplayName": "Survey Analytics",
+        "description": "View survey responses and channel attribution data"
+      }
+    ],
+
+    "appSettings": {
+      "componentType": "APP_SETTINGS",
+      "componentUrl": "/settings",
+      "name": "Survey Settings"
+    }
+  },
+
+  "extensions": {
+    "dataCollections": [
+      {
+        "name": "pps_responses",
+        "displayName": "Survey Responses",
+        "autoCreate": true,
+        "fields": [
+          {"name": "orderId", "type": "TEXT", "required": true},
+          {"name": "channel", "type": "TEXT", "required": true},
+          {"name": "orderValue", "type": "NUMBER", "required": true},
+          {"name": "currency", "type": "TEXT", "required": true},
+          {"name": "createdAt", "type": "DATE", "required": true}
+        ],
+        "indexes": [
+          {"name": "by_date", "fields": ["createdAt"], "order": "DESC"},
+          {"name": "by_order", "fields": ["orderId"], "unique": true}
+        ]
+      },
+      {
+        "name": "pps_settings",
+        "displayName": "App Settings",
+        "autoCreate": true,
+        "fields": [
+          {"name": "siteId", "type": "TEXT", "required": true},
+          {"name": "surveyTitle", "type": "TEXT", "required": true},
+          {"name": "choices", "type": "OBJECT", "required": true},
+          {"name": "isActive", "type": "BOOLEAN", "required": true}
+        ]
+      }
+    ]
+  },
+
+  "billing": {
+    "pricingModel": "FREEMIUM",
+    "plans": [
+      {
+        "id": "free",
+        "name": "Starter",
+        "price": {
+          "amount": 0,
+          "currency": "USD",
+          "period": "MONTHLY"
+        },
+        "limits": {
+          "monthlyResponses": 100,
+          "activeSurveys": 1
+        },
+        "features": [
+          "1 active survey",
+          "100 responses/month", 
+          "Basic dashboard analytics",
+          "CSV export (limited)",
+          "Email support"
+        ]
+      },
+      {
+        "id": "pro",
+        "name": "Professional",
+        "price": {
+          "amount": 2900,
+          "currency": "USD",
+          "period": "MONTHLY"
+        },
+        "limits": {
+          "monthlyResponses": -1,
+          "activeSurveys": -1
+        },
+        "features": [
+          "Unlimited surveys",
+          "Unlimited responses",
+          "Advanced analytics",
+          "Server-side events",
+          "Meta CAPI integration",
+          "Priority support"
+        ]
+      },
+      {
+        "id": "growth", 
+        "name": "Growth",
+        "price": {
+          "amount": 7900,
+          "currency": "USD",
+          "period": "MONTHLY"
+        },
+        "limits": {
+          "monthlyResponses": -1,
+          "activeSurveys": -1
+        },
+        "features": [
+          "Everything in Pro",
+          "SKU-level segmentation",
+          "Multi-survey rotation",
+          "Google Sheets sync",
+          "Channel revenue reporting",
+          "Dedicated support"
+        ]
+      }
+    ]
+  },
+
+  "secretKeys": [
+    "GOOGLE_ANALYTICS_ID",
+    "FACEBOOK_PIXEL_ID", 
+    "TIKTOK_PIXEL_ID",
+    "META_CAPI_ACCESS_TOKEN",
+    "META_CAPI_DATASET_ID"
+  ],
+
+  "requiredCapabilities": [
+    "STORES"
+  ],
+
+  "supportedLocales": [
+    "en", "es", "fr", "de", "pt", "it", "ja", "zh"
+  ],
+
+  "requirements": {
+    "minWixVersion": "2024.01.01",
+    "requiredFeatures": ["ECOMMERCE"],
+    "supportedDevices": ["DESKTOP", "MOBILE", "TABLET"]
+  }
+}
