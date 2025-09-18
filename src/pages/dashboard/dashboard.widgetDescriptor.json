@@ -1,0 +1,67 @@
+{
+  "widgetId": "dashboard",
+  "name": "Survey Analytics Dashboard",
+  "description": "View survey responses, channel attribution data, and export analytics",
+  "tags": ["analytics", "dashboard", "reporting", "attribution"],
+  "category": "analytics",
+  "component": "Dashboard",
+  "supportedPlatforms": ["desktop", "mobile"],
+  "displaySettings": {
+    "placement": ["dashboard-page"],
+    "defaultWidth": "100%",
+    "defaultHeight": "600px",
+    "responsive": true
+  },
+  "properties": {
+    "filters": {
+      "type": "object",
+      "description": "Dashboard filtering options",
+      "properties": {
+        "dateRange": {
+          "type": "string",
+          "enum": ["7days", "30days", "90days", "custom"],
+          "default": "30days"
+        },
+        "channel": {
+          "type": "string",
+          "description": "Filter by specific channel"
+        },
+        "dateFrom": {
+          "type": "string",
+          "format": "date",
+          "description": "Custom start date"
+        },
+        "dateTo": {
+          "type": "string",
+          "format": "date",
+          "description": "Custom end date"
+        }
+      }
+    }
+  },
+  "styling": {
+    "customizable": true,
+    "themes": ["light", "dark"],
+    "cssVariables": [
+      "--dashboard-background-color",
+      "--dashboard-card-background",
+      "--dashboard-text-color",
+      "--dashboard-primary-color",
+      "--dashboard-border-color"
+    ]
+  },
+  "events": [
+    {
+      "name": "onExportData",
+      "description": "Fired when data export is requested"
+    },
+    {
+      "name": "onFilterChange",
+      "description": "Fired when dashboard filters are changed"
+    }
+  ],
+  "dependencies": [
+    "wix-data",
+    "wix-secrets"
+  ]
+}

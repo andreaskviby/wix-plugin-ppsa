@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { saveResponse, responseExists } from '../backend/responses.jsw';
+import { saveResponse, responseExists } from '../../backend/responses.jsw';
 import './ThankYouSurvey.css';
 
 /**
